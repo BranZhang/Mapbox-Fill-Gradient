@@ -1,0 +1,23 @@
+* {
+    font-family: monospace;
+}
+
+.controls {
+    text-align: center;
+    margin: 16px 0;
+}
+
+.description {
+    text-align: center;
+}
+
+button {
+    cursor: pointer;
+}
+
+canvas {
+    margin: 16px auto;
+    border: 1px solid #aaa;
+    display: block;
+    max-width: 100%;
+}

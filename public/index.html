@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title><%= htmlWebpackPlugin.options.title %></title>
+</head>
+<body>
+    <div class="panel">
+        <div class="controls">
+            <button id="button-outer">Switch to drawing outer polygon</button>
+            <button id="button-inner">Switch to drawing holes</button>
+            <button id="button-clear">Clear all</button>
+            <button id="button-round">Round Corner</button>
+        </div>
+        <div class="description">Left-click to add points.</div>
+    </div>
+    <div id="wrapper">
+        <canvas id="canvas"></canvas>
+    </div>
+</body>
+</html>
