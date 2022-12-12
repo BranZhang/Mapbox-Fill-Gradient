@@ -1,8 +1,19 @@
+import earcut from 'earcut';
 import {Point, Vector, Line, Polygon, Multiline} from '@flatten-js/core';
 
 function calculateRoundCorner(skeleton) {
+    const originalVertices = new Map();
+    for (const [key, value] of skeleton.Distances) {
+        originalVertices.set(`${key.X},${key.Y}`, value);
+    }
+    const output = [];
+
     // traverse every edge of original Polygon.
-    for (let {Edge: e, Polygon: p} of skeleton.Edges) {
+    for (const {Edge: e, Polygon: p} of skeleton.Edges) {
+        const poly = new Polygon(p.map(po => [po.X, po.Y]));
+
+        let polygonCut = false;
+
         for (let i = 0; i < p.length - 1; i++) {
             if (skeleton.Distances.get(p[i]) === 0 && skeleton.Distances.get(p[i + 1]) === 0) {
                 // this edge is coming from original Polygon.
@@ -21,7 +32,8 @@ function calculateRoundCorner(skeleton) {
                 }
 
                 if (cutLines.length > 0) {
-                    const poly = new Polygon(p.map(po => [po.X, po.Y]));
+                    polygonCut = true;
+
                     const multiline = new Multiline(cutLines);
 
                     for (let line of cutLines) {
@@ -30,11 +42,54 @@ function calculateRoundCorner(skeleton) {
                         multiline.split(ipSorted);
                     }
 
-                    console.log(poly.cut(multiline));
+                    const splitPolygons = poly.cut(multiline);
+
+                    for (const splitPolygon of splitPolygons) {
+                        const sharePoints = sharePointsWithOriginalPolygon(splitPolygon, originalVertices);
+                        if (sharePoints.length >= 2) {
+                            output.push(triangulate(splitPolygon, originalVertices));
+                        } else if (sharePoints.length === 1) {
+                            // recalculate distance
+                            splitPolygon.vertices.forEach(vertex => {
+                                console.log('old', originalVertices.get(`${vertex.x},${vertex.y}`));
+                                originalVertices.set(
+                                    `${vertex.x},${vertex.y}`,
+                                    Math.sqrt((vertex.x - sharePoints[0].x) * (vertex.x - sharePoints[0].x) + (vertex.y - sharePoints[0].y) * (vertex.y - sharePoints[0].y))
+                                );
+                                console.log('new', originalVertices.get(`${vertex.x},${vertex.y}`));
+                            });
+                            output.push(triangulate(splitPolygon, originalVertices));
+                        } else {
+                            output.push(triangulate(splitPolygon, originalVertices));
+                        }
+                    }
                 }
             }
         }
+
+        if (!polygonCut) {
+            output.push(triangulate(poly, originalVertices));
+        }
     }
+
+    return output;
+}
+
+function sharePointsWithOriginalPolygon(polygon, originalVertices) {
+    return polygon.vertices.filter(vertex => originalVertices.get(`${vertex.x},${vertex.y}`) === 0);
+}
+
+function triangulate(polygon, originalVertices) {
+    const flat = [];
+
+    polygon.vertices.forEach(vertex => {
+        flat.push(vertex.x, vertex.y, originalVertices.get(`${vertex.x},${vertex.y}`));
+    });
+
+    return {
+        flat: flat,
+        indices: earcut(flat, undefined, 3)
+    };
 }
 
 export {

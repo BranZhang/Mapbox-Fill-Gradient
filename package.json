@@ -22,6 +22,7 @@
   "dependencies": {
     "@flatten-js/core": "^1.3.5",
     "dat.gui": "^0.7.9",
+    "earcut": "^2.2.4",
     "straight-skeleton": "^1.0.1",
     "twgl.js": "^4.24.0"
   }
