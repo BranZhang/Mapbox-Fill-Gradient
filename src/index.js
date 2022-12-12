@@ -1,6 +1,7 @@
 import './base.css';
 
 import SkeletonBuilder from 'straight-skeleton';
+import {calculateRoundCorner} from './RoundCorner.js';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -57,6 +58,10 @@ const drawEdgeResult = (res) => {
     ctx.stroke();
 }
 
+const drawRoundCorner = () => {
+
+}
+
 const drawPointsAndHoles = () => {
     ctx.fillStyle = '#333';
 
@@ -87,11 +92,12 @@ const rebuildSkeleton = (roundCorner = false) => {
         }
 
         if (skeleton) {
-            if (roundCorner) {
-                skeleton.calculateRoundCorner();
-            }
             for (const edgeRes of skeleton.Edges) {
                 drawEdgeResult(edgeRes);
+            }
+            if (roundCorner) {
+                calculateRoundCorner(skeleton);
+                drawRoundCorner();
             }
         }
     }
