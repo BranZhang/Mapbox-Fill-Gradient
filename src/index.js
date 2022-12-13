@@ -22,7 +22,7 @@ BufferArray.prototype.add = function(x, y, dx, dy) {
     this.pos += this.byteSize;
 };
 
-const lightGreen = [167/255, 255/255, 130/255,1];
+const lightGreen = [167/255, 255/255, 130/255, 0];
 const darkGreen = [49/255, 165/255, 0, 1];
 const middleGreen = [79/255, 224/255, 17/255, 1];
 let offset = 0;
@@ -144,7 +144,7 @@ const drawRoundCorner = (output) => {
 }
 
 function render() {
-    gl.uniform1f(program.u_stroke_width, 10);
+    gl.uniform1f(program.u_stroke_width, 0);
     gl.uniform4fv(program.u_stroke_colour, darkGreen);
     gl.uniform4fv(program.u_fill_colour, lightGreen);
     gl.uniform1f(program.u_stroke_offset, offset);
