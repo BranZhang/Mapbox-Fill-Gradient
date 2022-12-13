@@ -3,24 +3,55 @@ import './base.css';
 import SkeletonBuilder from 'straight-skeleton';
 import {calculateRoundCorner} from './RoundCorner.js';
 
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+import vertexShader from './vertex-shader.glsl';
+import fragmentShader from './fragment-shader.glsl';
 
-canvas.width = 800;
-canvas.height = 800;
+function BufferArray() {
+    this.arrayBuffer = new ArrayBuffer(1024000);
+    this.int16 = new Int16Array(this.arrayBuffer);
+    this.float32 = new Float32Array(this.arrayBuffer);
+    this.pos = 0;
+    this.byteSize = 32;
+}
+
+BufferArray.prototype.add = function(x, y, dx, dy) {
+    this.float32[this.pos / 4 + 0] = x;
+    this.float32[this.pos / 4 + 1] = y;
+    this.float32[this.pos / 4 + 2] = dx;//dx / 100000000;
+    //this.float32[this.pos / 4 + 3] = dy;
+    this.pos += this.byteSize;
+};
+
+const lightGreen = [167/255, 255/255, 130/255,1];
+const darkGreen = [49/255, 165/255, 0, 1];
+const middleGreen = [79/255, 224/255, 17/255, 1];
+let offset = 0;
+let bufferArray;
+
+
+const canvas1 = document.getElementById('canvas1');
+const ctx = canvas1.getContext('2d');
+
+canvas1.width = 800;
+canvas1.height = 400;
+
+const canvas2 = document.getElementById('canvas2');
+canvas2.width = 800;
+canvas2.height = 400;
+
+const gl = canvas2.getContext('webgl', { antialias: true });
+const program = gl.createProgram();
 
 const points = [
-    [100, 100],
-    [600, 100],
-    [600, 500],
-    [350, 400],
-    [100, 400],
+    [135, 99],
+    [647, 107],
+    [300, 209],
+    [590, 304],
+    [120, 295]
 ];
 const holes = [[]];
 let activeHoleId = 0;
 let holeMode = false;
-
-ctx.translate(0.5, 0.5);
 
 const drawCircle = (x, y, radius) => {
     ctx.beginPath();
@@ -58,26 +89,86 @@ const drawEdgeResult = (res) => {
     ctx.stroke();
 }
 
-const drawRoundCorner = () => {
+const drawRoundCorner = (output) => {
+    bufferArray = new BufferArray();
 
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    gl.clearColor(0,1,1,1);
+    gl.clearColor(1,1,1,1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.STENCIL_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+    const vert = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vert, vertexShader);
+    gl.compileShader(vert);
+    console.log(gl.getShaderInfoLog(vert));
+
+    const frag = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(frag, fragmentShader);
+    gl.compileShader(frag);
+    console.log(gl.getShaderInfoLog(frag));
+
+    gl.attachShader(program, vert);
+    gl.attachShader(program, frag);
+    gl.linkProgram(program);
+    gl.useProgram(program);
+
+    for (const poly of output) {
+        for (const i of poly.indices) {
+            const x = poly.flat[i * 3];
+            const y = poly.flat[i * 3 + 1];
+            const d = poly.flat[i * 3 + 2];
+            bufferArray.add(x, y, d || 0);
+        }
+    }
+
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, bufferArray.arrayBuffer, gl.STATIC_DRAW);
+
+    program.u_stroke_width = gl.getUniformLocation(program, "u_stroke_width");
+    program.u_stroke_colour = gl.getUniformLocation(program, "u_stroke_colour");
+    program.u_fill_colour = gl.getUniformLocation(program, "u_fill_colour");
+    program.u_stroke_offset = gl.getUniformLocation(program, "u_stroke_offset");
+    program.u_inset_width = gl.getUniformLocation(program, "u_inset_width");
+    program.u_inset_colour = gl.getUniformLocation(program, "u_inset_colour");
+    program.u_inset_blur = gl.getUniformLocation(program, "u_inset_blur");
+    program.a_pos = gl.getAttribLocation(program, "a_pos");
+    gl.enableVertexAttribArray(program.a_pos);
+    gl.vertexAttribPointer(program.a_pos, 4, gl.FLOAT, false, bufferArray.byteSize, 0);
+
+    render();
 }
+
+function render() {
+    gl.uniform1f(program.u_stroke_width, 10);
+    gl.uniform4fv(program.u_stroke_colour, darkGreen);
+    gl.uniform4fv(program.u_fill_colour, lightGreen);
+    gl.uniform1f(program.u_stroke_offset, offset);
+    gl.uniform4fv(program.u_inset_colour, middleGreen);
+    gl.uniform1f(program.u_inset_width, 60);
+    gl.drawArrays(gl.TRIANGLES, 0, bufferArray.pos / bufferArray.byteSize);
+};
 
 const drawPointsAndHoles = () => {
     ctx.fillStyle = '#333';
 
     for (const point of points) {
-        drawCircle(point[0] + 0.5, point[1] + 0.5, 2);
+        drawCircle(point[0] + 0.5, point[1] + 0.5, 4);
     }
 
     for (const hole of holes) {
         for (const point of hole) {
-            drawCircle(point[0] + 0.5, point[1] + 0.5, 2);
+            drawCircle(point[0] + 0.5, point[1] + 0.5, 4);
         }
     }
 }
 
 const rebuildSkeleton = (roundCorner = false) => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas1.width, canvas1.height);
 
     if (points.length > 2) {
         let skeleton;
@@ -96,8 +187,7 @@ const rebuildSkeleton = (roundCorner = false) => {
                 drawEdgeResult(edgeRes);
             }
             if (roundCorner) {
-                calculateRoundCorner(skeleton);
-                drawRoundCorner();
+                drawRoundCorner(calculateRoundCorner(skeleton));
             }
         }
     }
@@ -105,9 +195,9 @@ const rebuildSkeleton = (roundCorner = false) => {
     drawPointsAndHoles();
 };
 
-canvas.addEventListener('pointerdown', e => {
-    const x = e.offsetX * canvas.width / canvas.clientWidth;
-    const y = e.offsetY * canvas.height / canvas.clientHeight;
+canvas1.addEventListener('pointerdown', e => {
+    const x = e.offsetX * canvas1.width / canvas1.clientWidth;
+    const y = e.offsetY * canvas1.height / canvas1.clientHeight;
 
     if (!holeMode) {
         points.push([x, y]);

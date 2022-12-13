@@ -46,20 +46,36 @@ function calculateRoundCorner(skeleton) {
 
                     for (const splitPolygon of splitPolygons) {
                         const sharePoints = sharePointsWithOriginalPolygon(splitPolygon, originalVertices);
-                        if (sharePoints.length >= 2) {
-                            output.push(triangulate(splitPolygon, originalVertices));
+                        if (sharePoints.length === 2) {
+                            const copy = new Map();
+                            for (const [key, value] of originalVertices) {
+                                copy.set(key, value);
+                            }
+                            splitPolygon.vertices.forEach(vertex => {
+                                if (!copy.has(`${vertex.x},${vertex.y}`)) {
+                                    copy.set(
+                                        `${vertex.x},${vertex.y}`,
+                                        (new Point(vertex.x, vertex.y)).distanceTo(
+                                            new Line(new Point(sharePoints[0].x, sharePoints[0].y), new Point(sharePoints[1].x, sharePoints[1].y))
+                                        )[0]);
+                                }
+                            });
+                            output.push(triangulate(splitPolygon, copy));
                         } else if (sharePoints.length === 1) {
                             // recalculate distance
+                            const copy = new Map();
+                            for (const [key, value] of originalVertices) {
+                                copy.set(key, value);
+                            }
                             splitPolygon.vertices.forEach(vertex => {
-                                console.log('old', originalVertices.get(`${vertex.x},${vertex.y}`));
-                                originalVertices.set(
+                                copy.set(
                                     `${vertex.x},${vertex.y}`,
                                     Math.sqrt((vertex.x - sharePoints[0].x) * (vertex.x - sharePoints[0].x) + (vertex.y - sharePoints[0].y) * (vertex.y - sharePoints[0].y))
                                 );
-                                console.log('new', originalVertices.get(`${vertex.x},${vertex.y}`));
                             });
-                            output.push(triangulate(splitPolygon, originalVertices));
+                            output.push(triangulate(splitPolygon, copy));
                         } else {
+                            console.log('maybe error');
                             output.push(triangulate(splitPolygon, originalVertices));
                         }
                     }

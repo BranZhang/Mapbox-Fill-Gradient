@@ -19,5 +19,16 @@ canvas {
     margin: 16px auto;
     border: 1px solid #aaa;
     display: block;
+    position: absolute;
     max-width: 100%;
 }
+
+#canvas1 {
+    height: 400px;
+}
+
+#canvas2 {
+    top: 480px;
+    height: 400px;
+}
+
