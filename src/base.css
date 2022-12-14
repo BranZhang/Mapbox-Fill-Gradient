@@ -1,34 +1,11 @@
-* {
-    font-family: monospace;
+body {
+    margin: 0;
+    padding: 0;
 }
 
-.controls {
-    text-align: center;
-    margin: 16px 0;
-}
-
-.description {
-    text-align: center;
-}
-
-button {
-    cursor: pointer;
-}
-
-canvas {
-    margin: 16px auto;
-    border: 1px solid #aaa;
-    display: block;
-    position: absolute;
-    max-width: 100%;
-}
-
-#canvas1 {
-    height: 400px;
-}
-
-#canvas2 {
-    top: 480px;
-    height: 400px;
+html,
+body,
+#map {
+    height: 100%;
 }
 

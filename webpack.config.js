@@ -24,7 +24,7 @@ module.exports = {
             {
                 test: /\.glsl$/i,
                 use: ["webpack-glsl-loader"],
-            },
+            }
         ],
     },
     plugins: [

@@ -21,9 +21,13 @@
   },
   "dependencies": {
     "@flatten-js/core": "^1.3.5",
+    "@turf/dissolve": "^6.5.0",
+    "@turf/flatten": "^6.5.0",
+    "@turf/simplify": "^6.5.0",
     "dat.gui": "^0.7.9",
     "earcut": "^2.2.4",
     "straight-skeleton": "^1.0.1",
+    "straight-skeleton-offset": "0.0.2",
     "twgl.js": "^4.24.0"
   }
 }

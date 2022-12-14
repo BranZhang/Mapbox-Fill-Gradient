@@ -13,9 +13,5 @@ void main(void) {
 
     highp float fill_alpha = clamp(sign(v_distance + u_stroke_offset) - inset_alpha, 0.0, 1.0);
     gl_FragColor = u_inset_colour * inset_alpha + u_fill_colour * fill_alpha;
-
-
-
-
 //    gl_FragColor = vec4(v_distance / 200.0 + 0.5,0.0,0.0,1.0);
 }
