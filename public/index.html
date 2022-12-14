@@ -5,8 +5,13 @@
     <title><%= htmlWebpackPlugin.options.title %></title>
     <script src='https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.js'></script>
     <link href='https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.css' rel='stylesheet' />
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-compare/v0.4.0/mapbox-gl-compare.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-compare/v0.4.0/mapbox-gl-compare.css" type="text/css">
 </head>
 <body>
-    <div id="map"></div>
+    <div id="comparison-container">
+        <div id="before" class="map"></div>
+        <div id="after" class="map"></div>
+    </div>
 </body>
 </html>

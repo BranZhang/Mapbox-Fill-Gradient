@@ -3,23 +3,33 @@ import shadowLayer from "./shadowLayer";
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiYnJhbnpoYW5nIiwiYSI6ImNqM3FycmVldjAxZTUzM2xqMmllNnBjMHkifQ.Wv3ekbtia0BuUHGWVUGoFg';
 
-const map = new mapboxgl.Map({
-    container: 'map',
+const beforeMap = new mapboxgl.Map({
+    container: 'before',
+    style: 'mapbox://styles/mapbox/streets-v12',
+    projection: 'mercator',
+    center: [114.31548, 30.565478],
+    zoom: 15.3
+});
+
+const afterMap = new mapboxgl.Map({
+    container: 'after',
     style: 'mapbox://styles/mapbox/streets-v12',
     projection: 'mercator',
     hash: true,
     antialias: true,
-    center: [-122.3914, 37.7599],
-    zoom: 11
+    center: [114.31548, 30.565478],
+    zoom: 15.3
 });
-window.map = map;
-window.shadowLayer = shadowLayer;
 
-map.on('load', () => {
-    map.setLayoutProperty('water-shadow', 'visibility', 'none');
+const container = '#comparison-container';
+
+const map = new mapboxgl.Compare(beforeMap, afterMap, container, {});
+
+afterMap.on('load', () => {
+    afterMap.setLayoutProperty('water-shadow', 'visibility', 'none');
 
     const layer = new shadowLayer({
         id: 'new-water-shadow'
-    });
-    map.addLayer(layer);
+    }, 'water-shadow');
+    afterMap.addLayer(layer);
 })

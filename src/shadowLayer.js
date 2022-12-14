@@ -8,10 +8,9 @@ import flatten from "@turf/flatten";
 import dissolve from "@turf/dissolve";
 import simplify from "@turf/simplify";
 
-const data = [[116.3672,34.6289],[116.4551,34.8926],[116.8066,34.9365],[117.2461,34.4531],[117.334,34.585],[117.5977,34.4531],[117.9492,34.6729],[118.125,34.6289],[118.2129,34.4092],[118.3887,34.4092],[118.4766,34.6729],[118.7402,34.7168],[118.916,35.0244],[119.2676,35.1123],[119.3555,35.0244],[119.3555,34.8486],[119.707,34.585],[120.3223,34.3652],[120.9375,33.0469],[121.0254,32.6514],[121.377,32.4756],[121.4648,32.168],[121.9043,31.9922],[121.9922,31.6846],[121.9922,31.5967],[121.2012,31.8604],[121.1133,31.7285],[121.377,31.5088],[121.2012,31.4648],[120.9375,31.0254],[120.498,30.8057],[119.9707,31.1572],[119.6191,31.1133],[119.4434,31.1572],[119.3555,31.2891],[118.8281,31.2451],[118.7402,31.377],[118.916,31.5527],[118.3887,31.9482],[118.4766,32.168],[118.6523,32.2119],[118.5645,32.5635],[119.1797,32.4756],[119.1797,32.8271],[118.916,32.959],[118.7402,32.7393],[118.3008,32.7832],[118.2129,33.2227],[118.0371,33.1348],[117.9492,33.2227],[118.125,33.75],[117.7734,33.7061],[117.5977,34.0137],[117.1582,34.0576],[116.8945,34.4092]];
 const lightGreen = [0, 0, 0, 0];
 const darkGreen = [49/255, 165/255, 0, 0];
-const middleGreen = [79/255, 224/255, 17/255, 1];
+const middleGreen = [20/255, 20/255, 20/255, 0.15];
 
 let bufferArray = new BufferArray();
 
@@ -40,30 +39,6 @@ export default class shadowLayer {
         gl.attachShader(this.program, frag);
         gl.linkProgram(this.program);
 
-
-        // const skeleton = SkeletonBuilder.BuildFromGeoJSON([[
-        //    data.map(c => {
-        //        const coordinate = mapboxgl.MercatorCoordinate.fromLngLat({
-        //            lng: c[0],
-        //            lat: c[1]
-        //        });
-        //        return [coordinate.x * 100, coordinate.y * 100];
-        //    })
-        // ]]);
-        //
-        // for (const poly of calculateRoundCorner(skeleton)) {
-        //     for (const i of poly.indices) {
-        //         const x = poly.flat[i * 3] / 100;
-        //         const y = poly.flat[i * 3 + 1] / 100;
-        //         const d = poly.flat[i * 3 + 2];
-        //         bufferArray.add(x, y, d || 0);
-        //     }
-        // }
-
-        const buffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, bufferArray.arrayBuffer, gl.STATIC_DRAW);
-
         this.u_stroke_width = gl.getUniformLocation(this.program, "u_stroke_width");
         this.u_stroke_colour = gl.getUniformLocation(this.program, "u_stroke_colour");
         this.u_fill_colour = gl.getUniformLocation(this.program, "u_fill_colour");
@@ -72,12 +47,17 @@ export default class shadowLayer {
         this.u_inset_colour = gl.getUniformLocation(this.program, "u_inset_colour");
         this.u_inset_blur = gl.getUniformLocation(this.program, "u_inset_blur");
         this.a_pos = gl.getAttribLocation(this.program, "a_pos");
-        gl.enableVertexAttribArray(this.a_pos);
-        gl.vertexAttribPointer(this.a_pos, 4, gl.FLOAT, false, bufferArray.byteSize, 0);
+
     }
 
     render(gl, matrix) {
         gl.useProgram(this.program);
+
+        const buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, bufferArray.arrayBuffer, gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(this.a_pos);
+        gl.vertexAttribPointer(this.a_pos, 4, gl.FLOAT, false, bufferArray.byteSize, 0);
 
         gl.uniformMatrix4fv(
             gl.getUniformLocation(this.program, 'u_matrix'),
@@ -90,24 +70,28 @@ export default class shadowLayer {
         gl.uniform4fv(this.u_fill_colour, lightGreen);
         gl.uniform1f(this.u_stroke_offset, 0);
         gl.uniform4fv(this.u_inset_colour, middleGreen);
-        gl.uniform1f(this.u_inset_width, 0.05);
+        gl.uniform1f(this.u_inset_width, 0.000001);
 
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        // gl.enable(gl.BLEND);
+        // gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         gl.drawArrays(gl.TRIANGLES, 0, bufferArray.pos / bufferArray.byteSize);
     }
 
     updateData() {
+        this.center = mapboxgl.MercatorCoordinate.fromLngLat(this.map.getCenter());
         try {
             const features = this.map.queryRenderedFeatures(
                 {layers: ['water']}
             )
-            const data = dissolve(flatten(simplify({
+
+            if (features.length === 0) {
+                return;
+            }
+
+            const data = dissolve(flatten({
                 type: 'FeatureCollection',
                 features: features
-            }, {
-                tolerance: 0.0005
-            })));
+            }));
 
             bufferArray = new BufferArray();
 
@@ -117,20 +101,15 @@ export default class shadowLayer {
 
                 coordinates.forEach(cc => {
                     cc.pop();
-                    cc.reverse();
                 })
                 console.log(coordinates);
 
-                const ss = new StraightSkeleton();
-                ss.execute(coordinates[0], []);
-                console.log(ss);
-
-                const skeleton = SkeletonBuilder.BuildFromGeoJSON([[coordinates[0]]]);
+                const skeleton = SkeletonBuilder.BuildFromGeoJSON([coordinates]);
                 for (const poly of calculateRoundCorner(skeleton)) {
                     for (const i of poly.indices) {
-                        const x = poly.flat[i * 3] / 1000000;
-                        const y = poly.flat[i * 3 + 1] / 1000000;
-                        const d = poly.flat[i * 3 + 2];
+                        const x = poly.flat[i * 3] / 1000000 + this.center.x;
+                        const y = poly.flat[i * 3 + 1] / 1000000 + this.center.y;
+                        const d = poly.flat[i * 3 + 2] / 1000000;
                         bufferArray.add(x, y, d || 0);
                     }
                 }
@@ -146,7 +125,7 @@ export default class shadowLayer {
                 lng: coordinates[0],
                 lat: coordinates[1]
             });
-            return [coordinate.x * 1000000, coordinate.y * 1000000];
+            return [(coordinate.x - this.center.x) * 1000000, (coordinate.y - this.center.y) * 1000000];
         } else {
             return coordinates.map(c => this.lngLatToMercator(c));
         }
